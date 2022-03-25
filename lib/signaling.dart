@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:flutter_wwebrtc/turn.dart';
 
 
 enum SignalingState {
@@ -27,12 +28,11 @@ class Session {
 }
 
 class Signaling {
-  Signaling(this._host);
 
   JsonEncoder _encoder = JsonEncoder();
   JsonDecoder _decoder = JsonDecoder();
   String _selfId = '254634';
-  var _host;
+
   var _port = 8086;
   var _turnCredential;
   Map<String, Session> _sessions = {};
@@ -96,13 +96,13 @@ class Signaling {
     }
   }
 
-  void invite(String peerId, String media, bool useScreen) async {
+  void invite(String peerId, String media) async {
     var sessionId = _selfId + '-' + peerId;
     Session session = await _createSession(null,
         peerId: peerId,
         sessionId: sessionId,
         media: media,
-        screenSharing: useScreen);
+        screenSharing: false);
     _sessions[sessionId] = session;
     if (media == 'data') {
       _createDataChannel(session);
@@ -220,56 +220,7 @@ class Signaling {
     }
   }
 
-  Future<void> connect() async {
-    var url = 'https://$_host:$_port/ws';
-    _socket = SimpleWebSocket(url);
 
-    print('connect to $url');
-
-    if (_turnCredential == null) {
-      try {
-        _turnCredential = await getTurnCredential(_host, _port);
-        /*{
-            "username": "1584195784:mbzrxpgjys",
-            "password": "isyl6FF6nqMTB9/ig5MrMRUXqZg",
-            "ttl": 86400,
-            "uris": ["turn:127.0.0.1:19302?transport=udp"]
-          }
-        */
-        _iceServers = {
-          'iceServers': [
-            {
-              'urls': _turnCredential['uris'][0],
-              'username': _turnCredential['username'],
-              'credential': _turnCredential['password']
-            },
-          ]
-        };
-      } catch (e) {}
-    }
-
-    _socket?.onOpen = () {
-      print('onOpen');
-      onSignalingStateChange?.call(SignalingState.ConnectionOpen);
-      _send('new', {
-        'name': DeviceInfo.label,
-        'id': _selfId,
-        'user_agent': DeviceInfo.userAgent
-      });
-    };
-
-    _socket?.onMessage = (message) {
-      print('Received data: ' + message);
-      onMessage(_decoder.convert(message));
-    };
-
-    _socket?.onClose = (int code, String reason) {
-      print('Closed by server [$code => $reason]!');
-      onSignalingStateChange?.call(SignalingState.ConnectionClosed);
-    };
-
-    await _socket?.connect();
-  }
 
   Future<MediaStream> createStream(String media, bool userScreen) async {
     final Map<String, dynamic> mediaConstraints = {
@@ -388,7 +339,7 @@ class Signaling {
                 'to': peerId,
                 'from': _selfId,
                 'candidate': {
-                  'sdpMLineIndex': candidate.sdpMlineIndex,
+                  'sdpMLineIndex': candidate.sdpMLineIndex,
                   'sdpMid': candidate.sdpMid,
                   'candidate': candidate.candidate,
                 },
@@ -468,7 +419,7 @@ class Signaling {
     var request = Map();
     request["type"] = event;
     request["data"] = data;
-    _socket?.send(_encoder.convert(request));
+
   }
 
   Future<void> _cleanSessions() async {

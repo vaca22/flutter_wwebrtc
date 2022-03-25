@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:flutter_wwebrtc/signaling.dart';
 
 void main() {
   runApp(const MyApp());
@@ -49,6 +50,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  Signaling? _signaling;
+  Session? _session;
   int _counter = 0;
   final userScreen=false;
   bool _inCalling = true;
@@ -56,43 +59,69 @@ class _MyHomePageState extends State<MyHomePage> {
   RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
   @override
   initState() {
+
     super.initState();
     initRenderers();
+    _connect();
+  }
+  void _connect() async {
+    _signaling ??= Signaling();
+    _signaling?.onSignalingStateChange = (SignalingState state) {
+      switch (state) {
+        case SignalingState.ConnectionClosed:
+        case SignalingState.ConnectionError:
+        case SignalingState.ConnectionOpen:
+          break;
+      }
+    };
 
+    _signaling?.onCallStateChange = (Session session, CallState state) {
+      switch (state) {
+        case CallState.CallStateNew:
+          setState(() {
+            _session = session;
+            _inCalling = true;
+          });
+          break;
+        case CallState.CallStateBye:
+          setState(() {
+            _localRenderer.srcObject = null;
+            _remoteRenderer.srcObject = null;
+            _inCalling = false;
+            _session = null;
+          });
+          break;
+        case CallState.CallStateInvite:
+        case CallState.CallStateConnected:
+        case CallState.CallStateRinging:
+      }
+    };
+
+    // _signaling?.onPeersUpdate = ((event) {
+    //   setState(() {
+    //     _selfId = event['self'];
+    //     _peers = event['peers'];
+    //   });
+    // });
+
+    _signaling?.onLocalStream = ((stream) {
+      _localRenderer.srcObject = stream;
+    });
+
+    _signaling?.onAddRemoteStream = ((_, stream) {
+      _remoteRenderer.srcObject = stream;
+    });
+
+    _signaling?.onRemoveRemoteStream = ((_, stream) {
+      _remoteRenderer.srcObject = null;
+    });
   }
 
   initRenderers() async {
     await _localRenderer.initialize();
-    final Map<String, dynamic> mediaConstraints = {
-      'audio': userScreen ? false : true,
-      'video': userScreen
-          ? true
-          : {
-        'mandatory': {
-          'minWidth': '1080', // Provide your own width, height and frame rate here
-          'minHeight': '1920',
-          'minFrameRate': '30',
-        },
-        'facingMode': 'user',
-        'optional': [],
-      }
-    };
-    MediaStream stream = userScreen
-        ? await navigator.mediaDevices.getDisplayMedia(mediaConstraints)
-        : await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    _localRenderer.srcObject=stream;
+    await _remoteRenderer.initialize();
   }
-  void _incrementCounter() {
-   // Helper.switchCamera(_localRenderer.srcObject!.getVideoTracks()[0]);
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +145,7 @@ class _MyHomePageState extends State<MyHomePage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 FloatingActionButton(
-                  onPressed: () {  },
+                  onPressed: () {  Helper.switchCamera(_localRenderer.srcObject!.getVideoTracks()[0]);},
                   child: const Icon(Icons.switch_camera),
 
                 ),
@@ -124,10 +153,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   tooltip: 'Hangup',
                   child: Icon(Icons.call_end),
                   backgroundColor: Colors.pink,
-                  onPressed: () {  },
+                  onPressed: () {   initRenderers(); },
                 ),
                 FloatingActionButton(
-                  onPressed: () {  },
+                  onPressed: () {_signaling?.invite('peerId', 'video');  },
                   child: const Icon(Icons.mic_off),
 
                 )

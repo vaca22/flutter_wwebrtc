@@ -180,8 +180,8 @@ class _MyHomePageState extends State<MyHomePage> {
             left: 20.0,
             top: 20.0,
             child: Container(
-              width:  108,
-              height: 192,
+              width:  96,
+              height: 128,
               child: RTCVideoView(_localRenderer, mirror: true),
               decoration: BoxDecoration(color: Colors.black54),
             ),

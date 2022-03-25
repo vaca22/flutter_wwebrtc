@@ -69,8 +69,8 @@ class _MyHomePageState extends State<MyHomePage> {
           : {
         'mandatory': {
           'minWidth':
-          '1080', // Provide your own width, height and frame rate here
-          'minHeight': '1920',
+          '320', // Provide your own width, height and frame rate here
+          'minHeight': '640',
           'minFrameRate': '30',
         },
         'facingMode': 'user',
@@ -83,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _localRenderer.srcObject=stream;
   }
   void _incrementCounter() {
-    Helper.switchCamera(_localRenderer.srcObject!.getVideoTracks()[0]);
+   // Helper.switchCamera(_localRenderer.srcObject!.getVideoTracks()[0]);
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below

@@ -69,9 +69,8 @@ class _MyHomePageState extends State<MyHomePage> {
           ? true
           : {
         'mandatory': {
-          'minWidth':
-          '640', // Provide your own width, height and frame rate here
-          'minHeight': '640',
+          'minWidth': '1080', // Provide your own width, height and frame rate here
+          'minHeight': '1920',
           'minFrameRate': '30',
         },
         'facingMode': 'user',
@@ -152,8 +151,8 @@ class _MyHomePageState extends State<MyHomePage> {
             left: 20.0,
             top: 20.0,
             child: Container(
-              width:  120.0,
-              height: 60,
+              width:  108,
+              height: 192,
               child: RTCVideoView(_localRenderer, mirror: true),
               decoration: BoxDecoration(color: Colors.black54),
             ),
